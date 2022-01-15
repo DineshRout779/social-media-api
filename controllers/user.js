@@ -43,12 +43,46 @@ exports.deleteUser = async (req, res) => {
   if (req.body.userId === req.params.id || req.body.isAdmin) {
     try {
       const user = await User.findByIdAndDelete(req.params.id);
+      if (!user) {
+        return res.status(404).json('User not found!');
+      }
+
       return res.status(200).json('account has been deleted!');
     } catch (err) {
       return res.status(500).json(err);
     }
   } else {
     return res.status(403).json('you can delete only your acount');
+  }
+};
+
+exports.getFollowing = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await User.findById(id);
+    const following = await Promise.all(
+      user.following.map((followedUserId) => {
+        return User.findById(followedUserId);
+      })
+    );
+    return res.status(200).json(following);
+  } catch (error) {
+    return res.status(500).json(error.message);
+  }
+};
+
+exports.getFollowers = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await User.findById(id);
+    const followers = await Promise.all(
+      user.followers.map((followerUserId) => {
+        return User.findById(followerUserId);
+      })
+    );
+    return res.status(200).json(followers);
+  } catch (error) {
+    return res.status(500).json(error.message);
   }
 };
 
