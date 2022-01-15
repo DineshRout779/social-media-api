@@ -8,6 +8,7 @@ const {
   deletePost,
   likePost,
 } = require('../controllers/posts');
+const verifyToken = require('../middlewares/verifyToken');
 
 // create a post
 router.post('/', createPost);
