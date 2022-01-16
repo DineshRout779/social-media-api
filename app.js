@@ -23,8 +23,11 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then((db) => console.log('db is connected'))
-  .catch((err) => console.log(err));
+  .then(() => console.log('Connected to Database!'))
+  .catch((err) => {
+    console.log(err);
+    process.exit(1);
+  });
 
 // routes setup
 app.use('/api/users', userRoute);
