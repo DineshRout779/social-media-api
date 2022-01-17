@@ -2,9 +2,12 @@ const User = require('../models/User');
 const bcrypt = require('bcrypt');
 
 exports.getAllUsers = async (req, res) => {
-  const users = await User.find();
-  if (!users) return res.status(404).json('User not found!');
-
+  const users = req.query.username
+    ? await User.find({
+        username: new RegExp(req.query.username, 'i'),
+      })
+    : await User.find();
+  if (!users) return res.status(404).json('No user found!');
   return res.status(200).json(users);
 };
 
@@ -133,3 +136,5 @@ exports.unfollowUser = async (req, res) => {
     return res.status(403).json(`you can't unfollow yourself!`);
   }
 };
+
+// http://localhost:5000/api/users?username=dinesh
