@@ -23,10 +23,10 @@ router.get('/timeline/:userId', getTimelinePosts);
 router.get('/:id', getPost);
 
 // update a post
-router.put('/:id', updatePost);
+router.put('/:id', verifyToken, updatePost);
 
 // delete a post
-router.delete('/:id', deletePost);
+router.delete('/:id', verifyToken, deletePost);
 
 // like/dislike a post
 router.put('/:id/like', likePost);

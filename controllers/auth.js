@@ -87,5 +87,5 @@ const generateToken = (user, statusCode, res) => {
   const token = jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: '10min',
   });
-  res.status(statusCode).json({ success: true, token, user });
+  res.status(statusCode).json({ user: { ...user._doc, token } });
 };
