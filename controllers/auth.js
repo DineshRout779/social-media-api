@@ -8,7 +8,6 @@ exports.register = async (req, res) => {
 
   if (!username || !email || !password) {
     return res.status(400).json({
-      success: false,
       error: 'Please provide username, email and password!',
     });
   }
@@ -16,7 +15,6 @@ exports.register = async (req, res) => {
   const user = await User.findOne({ email });
   if (user)
     return res.status(403).json({
-      success: false,
       error: 'User already exists',
     });
 
@@ -32,21 +30,19 @@ exports.register = async (req, res) => {
     await newUser.save();
     const { password, ...others } = newUser._doc;
 
-    generateToken(others, 201, res);
+    return res.status(200).json('User registered successfully!');
   } catch (error) {
     return res.status(500).json({
-      success: false,
       error: error.message,
     });
   }
 };
 
 exports.login = async (req, res, next) => {
-  const { email, password } = req.body;
+  const { email, password: clientPassword } = req.body;
 
-  if (!email || !password) {
+  if (!email || !clientPassword) {
     return res.status(400).json({
-      success: false,
       error: 'Please provide email and password!',
     });
   }
@@ -55,37 +51,33 @@ exports.login = async (req, res, next) => {
 
     if (!user) {
       return res.status(404).json({
-        success: false,
         error: 'User not registered!',
       });
     }
 
-    const validPassword = await bcrypt.compare(password, user.password);
+    const validPassword = await bcrypt.compare(clientPassword, user.password);
     if (!validPassword) {
       return res.status(403).json({
-        success: false,
         error: 'Invalid credentials!',
       });
     }
 
-    generateToken(user, 200, res);
+    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '7d',
+    });
+
+    res.cookie('token', token, { expire: new Date() + 9999 });
+
+    const { password, ...others } = user._doc;
+
+    return res.status(200).json({
+      ...others,
+      token,
+    });
   } catch (err) {
     console.log(err);
     return res.status(500).json({
-      success: false,
       err: err.message,
     });
   }
-};
-
-const generateToken = (user, statusCode, res) => {
-  const payload = {
-    user: {
-      _id: user._id,
-    },
-  };
-  const token = jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: '10min',
-  });
-  res.status(statusCode).json({ user: { ...user._doc, token } });
 };
