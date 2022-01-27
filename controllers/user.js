@@ -30,7 +30,7 @@ exports.updateUser = async (req, res) => {
       }
     }
     try {
-      const user = await User.findByIdAndUpdate(req.params.id, {
+      await User.findByIdAndUpdate(req.params.id, {
         $set: req.body,
       });
       return res.status(200).json('account has been updated!');
@@ -62,12 +62,8 @@ exports.deleteUser = async (req, res) => {
 exports.getFollowing = async (req, res) => {
   const { id } = req.params;
   try {
-    const user = await User.findById(id);
-    const following = await Promise.all(
-      user.following.map((followedUserId) => {
-        return User.findById(followedUserId);
-      })
-    );
+    const user = await User.findById(id).populate('following');
+    const following = user.following;
     return res.status(200).json(following);
   } catch (error) {
     return res.status(500).json(error.message);
@@ -77,12 +73,8 @@ exports.getFollowing = async (req, res) => {
 exports.getFollowers = async (req, res) => {
   const { id } = req.params;
   try {
-    const user = await User.findById(id);
-    const followers = await Promise.all(
-      user.followers.map((followerUserId) => {
-        return User.findById(followerUserId);
-      })
-    );
+    const user = await User.findById(id).populate('followers');
+    const followers = user.followers;
     return res.status(200).json(followers);
   } catch (error) {
     return res.status(500).json(error.message);
