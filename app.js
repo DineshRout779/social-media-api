@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const morgan = require('morgan');
 const helmet = require('helmet');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const userRoute = require('./routes/users');
 const authRoute = require('./routes/auth');
 const postRoute = require('./routes/posts');
@@ -12,6 +13,7 @@ const app = express();
 
 // middlewares
 app.use(express.json());
+app.use(cookieParser());
 app.use(helmet());
 app.use(morgan('common'));
 app.use(cors());
