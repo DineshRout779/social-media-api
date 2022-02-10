@@ -21,8 +21,8 @@ const UserSchema = new mongoose.Schema(
       required: true,
     },
     profilePic: {
-      type: String,
-      default: '',
+      data: Buffer,
+      contentType: String,
     },
     coverPic: {
       type: String,
