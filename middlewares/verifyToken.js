@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -9,7 +8,6 @@ const verifyToken = (req, res, next) => {
 
     if (!token) {
       return res.status(400).json({
-        success: false,
         error: 'No token found!',
       });
     }
@@ -17,7 +15,6 @@ const verifyToken = (req, res, next) => {
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
       if (err) {
         return res.status(403).json({
-          success: false,
           error: 'Token not valid!',
         });
       }
@@ -26,11 +23,19 @@ const verifyToken = (req, res, next) => {
       next();
     });
   } else {
-    res.status(401).json({
-      success: false,
-      error: 'You are not authorized',
+    return res.status(401).json({
+      error: 'Unauthorized! No token found.',
     });
   }
 };
 
-module.exports = verifyToken;
+const hasAuthorization = (req, res, next) => {
+  if (req.user._id != req.body.userId) {
+    return res.status(403).json({
+      error: 'You are not authorized',
+    });
+  }
+  next();
+};
+
+module.exports = { verifyToken, hasAuthorization };
