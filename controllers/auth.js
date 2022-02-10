@@ -47,7 +47,10 @@ exports.login = async (req, res, next) => {
     });
   }
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate(
+      'following',
+      '_id email username profilePic'
+    );
 
     if (!user) {
       return res.status(404).json({
@@ -71,8 +74,10 @@ exports.login = async (req, res, next) => {
     const { password, ...others } = user._doc;
 
     return res.status(200).json({
-      ...others,
-      token,
+      user: {
+        ...others,
+        token,
+      },
     });
   } catch (err) {
     console.log(err);
