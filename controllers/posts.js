@@ -2,7 +2,7 @@ const Post = require('../models/Post');
 const User = require('../models/User');
 
 exports.createPost = async (req, res) => {
-  const newPost = await Post(req.body);
+  const newPost = new Post(req.body);
   try {
     const savedPost = await newPost.save();
     return res.status(200).json(savedPost);
@@ -13,7 +13,10 @@ exports.createPost = async (req, res) => {
 
 exports.getAllPosts = async (req, res) => {
   try {
-    const posts = await Post.find();
+    const posts = await Post.find().populate(
+      'userId',
+      'username email _id profilePic'
+    );
     if (!posts) return res.status(400).json('no posts!');
     return res.status(200).json(posts);
   } catch (err) {
@@ -24,10 +27,13 @@ exports.getAllPosts = async (req, res) => {
 exports.getTimelinePosts = async (req, res) => {
   try {
     const currentUser = await User.findById(req.params.userId);
-    const userPosts = await Post.find({ userId: currentUser._id });
+    const userPosts = await Post.find({ userId: currentUser._id }).populate(
+      'userId',
+      'username email _id profilePic'
+    );
     const friendsPosts = await Promise.all(
       currentUser.following.map((friendId) => {
-        return Post.find({ userId: friendId });
+        return Post.find({ userId: friendId }).populate('userId');
       })
     );
     return res.status(200).json(userPosts.concat(...friendsPosts));
@@ -38,7 +44,10 @@ exports.getTimelinePosts = async (req, res) => {
 
 exports.getPost = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findById(req.params.id).populate(
+      'userId',
+      'username email _id profilePic'
+    );
     if (!post) return res.status(404).json('post not found!');
 
     return res.status(200).json(post);
@@ -50,12 +59,8 @@ exports.getPost = async (req, res) => {
 exports.updatePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
-    if (post.userId === req.body.userId) {
-      await post.updateOne({ $set: req.body });
-      return res.status(200).json('post has been updated');
-    } else {
-      return res.status(403).json('you can update only your post');
-    }
+    await post.updateOne({ $set: req.body });
+    return res.status(200).json('post has been updated');
   } catch (err) {
     return res.status(500).json(err);
   }
@@ -65,12 +70,8 @@ exports.deletePost = async (req, res) => {
   try {
     console.log(req.body);
     const post = await Post.findById(req.params.id);
-    if (post.userId === req.body.userId) {
-      await post.deleteOne();
-      return res.status(200).json('post has been deleted');
-    } else {
-      return res.status(403).json('you can delete only your post');
-    }
+    await post.deleteOne();
+    return res.status(200).json('post has been deleted');
   } catch (err) {
     return res.status(500).json(err);
   }

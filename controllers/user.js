@@ -12,7 +12,9 @@ exports.getAllUsers = async (req, res) => {
 };
 
 exports.getUser = async (req, res) => {
-  const user = await User.findById(req.params.id);
+  const user = await User.findById(req.params.id)
+    .populate('following')
+    .populate('followers');
   if (!user) return res.status(404).json('User not found!');
 
   const { password, updatedAt, ...others } = user._doc;
@@ -30,10 +32,11 @@ exports.updateUser = async (req, res) => {
       }
     }
     try {
-      await User.findByIdAndUpdate(req.params.id, {
+      const updatedUser = await User.findByIdAndUpdate(req.params.id, {
         $set: req.body,
       });
-      return res.status(200).json('account has been updated!');
+      const { password, ...others } = updatedUser._doc;
+      return res.status(200).json(others);
     } catch (err) {
       return res.status(500).json(err);
     }
