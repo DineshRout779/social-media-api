@@ -8,7 +8,7 @@ const {
   deletePost,
   likePost,
 } = require('../controllers/posts');
-const verifyToken = require('../middlewares/verifyToken');
+const { verifyToken, hasAuthorization } = require('../middlewares/verifyToken');
 
 // create a post
 router.post('/', createPost);
@@ -23,10 +23,10 @@ router.get('/timeline/:userId', getTimelinePosts);
 router.get('/:id', getPost);
 
 // update a post
-router.put('/:id', verifyToken, updatePost);
+router.put('/:id', verifyToken, hasAuthorization, updatePost);
 
 // delete a post
-router.delete('/:id', verifyToken, deletePost);
+router.delete('/:id', verifyToken, hasAuthorization, deletePost);
 
 // like/dislike a post
 router.put('/:id/like', likePost);
