@@ -122,8 +122,8 @@ exports.isSignedIn = (req, res, next) => {
 };
 
 exports.hasAuthorization = (req, res, next) => {
-  console.log(req.profile._id);
-  console.log(req.user._id);
+  // console.log(req.profile._id);
+  // console.log(req.user._id);
   const authorized = req.profile && req.user && req.profile._id == req.user._id;
   if (!authorized) {
     return res.status(403).json({

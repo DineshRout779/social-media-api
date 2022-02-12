@@ -63,7 +63,6 @@ exports.getTimelinePosts = async (req, res) => {
       .sort('-createdAt');
     return res.status(200).json(posts);
   } catch (error) {
-    console.log(error);
     return res.status(500).json({ error });
   }
 };
@@ -73,7 +72,6 @@ exports.createPost = async (req, res) => {
   try {
     let savedPost = await newPost.save();
     savedPost = await savedPost.populate('postedBy', '_id username');
-    console.log(savedPost);
     return res.status(200).json(savedPost);
   } catch (error) {
     return res.status(500).json(error);
@@ -100,10 +98,8 @@ exports.updatePost = async (req, res) => {
 exports.deletePost = async (req, res) => {
   try {
     const deletedPost = await Post.findByIdAndDelete(req.post._id);
-    console.log(deletedPost);
     return res.status(200).json(deletedPost);
   } catch (error) {
-    console.log(error);
     return res.status(500).json(error);
   }
 };
