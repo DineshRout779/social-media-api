@@ -1,86 +1,97 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 
-exports.getAllUsers = async (req, res) => {
-  const users = req.query.username
-    ? await User.find({
-        username: new RegExp(req.query.username, 'i'),
-      })
-    : await User.find();
-  if (!users) return res.status(404).json('No user found!');
-  return res.status(200).json(users);
+exports.getUserById = async (req, res, next, id) => {
+  try {
+    let user = await User.findById(id)
+      .select('-profilePic')
+      .populate('following', '_id username email')
+      .populate('followers', '_id username email');
+    if (!user)
+      return res.status(404).json({
+        error: 'User not found',
+      });
+
+    req.profile = user;
+    next();
+  } catch (err) {
+    return res.status(500).json(err);
+  }
 };
 
-exports.getUser = async (req, res) => {
-  const user = await User.findById(req.params.id)
-    .populate('following')
-    .populate('followers');
-  if (!user) return res.status(404).json('User not found!');
+exports.getUser = (req, res) => {
+  req.profile.password = undefined;
+  return res.json(req.profile);
+};
 
-  const { password, updatedAt, ...others } = user._doc;
-  return res.status(200).json(others);
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = req.query.username
+      ? await User.find({
+          username: new RegExp(req.query.username, 'i'),
+        }).select('_id username email')
+      : await User.find().select('_id username email');
+    if (!users) return res.status(404).json('No user found!');
+    return res.status(200).json(users);
+  } catch (error) {
+    return res.status(500).json(error);
+  }
+};
+
+exports.findPeople = async (req, res) => {
+  let following = [
+    ...req.profile.following,
+    {
+      _id: req.profile._id,
+      username: req.profile.username,
+      email: req.profile.email,
+    },
+  ];
+  try {
+    let users = await User.find({ _id: { $nin: following } }).select(
+      '_id username'
+    );
+    res.status(200).json(users);
+  } catch (err) {
+    return res.status(400).json({
+      error: errorHandler.getErrorMessage(err),
+    });
+  }
 };
 
 exports.updateUser = async (req, res) => {
-  if (req.body.userId === req.params.id || req.body.isAdmin) {
-    if (req.body.password) {
-      try {
-        const salt = await bcrypt.genSalt(10);
-        req.body.password = await bcrypt.hash(req.body.password, salt);
-      } catch (err) {
-        return res.status(500).json(err);
-      }
-    }
+  if (req.body.password) {
     try {
-      const updatedUser = await User.findByIdAndUpdate(req.params.id, {
-        $set: req.body,
-      });
-      const { password, ...others } = updatedUser._doc;
-      return res.status(200).json(others);
+      const salt = await bcrypt.genSalt(10);
+      req.body.password = await bcrypt.hash(req.body.password, salt);
     } catch (err) {
-      return res.status(500).json(err);
+      return res.status(500).json({ err });
     }
-  } else {
-    return res.status(403).json('you can update only your acount');
+  }
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.profile._id,
+      {
+        $set: req.body,
+      },
+      {
+        new: true,
+      }
+    );
+    const { password, ...others } = updatedUser._doc;
+    return res.status(200).json(others);
+  } catch (err) {
+    return res.status(500).json({ err });
   }
 };
 
 exports.deleteUser = async (req, res) => {
-  if (req.body.userId === req.params.id || req.body.isAdmin) {
-    try {
-      const user = await User.findByIdAndDelete(req.params.id);
-      if (!user) {
-        return res.status(404).json('User not found!');
-      }
-
-      return res.status(200).json('account has been deleted!');
-    } catch (err) {
-      return res.status(500).json(err);
-    }
-  } else {
-    return res.status(403).json('you can delete only your acount');
-  }
-};
-
-exports.getFollowing = async (req, res) => {
-  const { id } = req.params;
   try {
-    const user = await User.findById(id).populate('following');
-    const following = user.following;
-    return res.status(200).json(following);
-  } catch (error) {
-    return res.status(500).json(error.message);
-  }
-};
+    const deletedUser = await User.findByIdAndDelete(req.profile._id);
 
-exports.getFollowers = async (req, res) => {
-  const { id } = req.params;
-  try {
-    const user = await User.findById(id).populate('followers');
-    const followers = user.followers;
-    return res.status(200).json(followers);
-  } catch (error) {
-    return res.status(500).json(error.message);
+    return res.status(200).json(deletedUser);
+  } catch (err) {
+    return res.status(500).json(err);
   }
 };
 
@@ -132,4 +143,4 @@ exports.unfollowUser = async (req, res) => {
   }
 };
 
-// http://localhost:5000/api/users?username=dinesh
+// http://localhost:5000/api/users
