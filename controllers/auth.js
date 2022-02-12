@@ -1,4 +1,3 @@
-require('dotenv').config();
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -38,7 +37,7 @@ exports.register = async (req, res) => {
   }
 };
 
-exports.login = async (req, res, next) => {
+exports.login = async (req, res) => {
   const { email, password: clientPassword } = req.body;
 
   if (!email || !clientPassword) {
@@ -47,10 +46,7 @@ exports.login = async (req, res, next) => {
     });
   }
   try {
-    const user = await User.findOne({ email }).populate(
-      'following',
-      '_id email username profilePic'
-    );
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(404).json({
@@ -75,7 +71,9 @@ exports.login = async (req, res, next) => {
 
     return res.status(200).json({
       user: {
-        ...others,
+        _id: others._id,
+        username: others.username,
+        email: others.email,
         token,
       },
     });
@@ -85,4 +83,52 @@ exports.login = async (req, res, next) => {
       err: err.message,
     });
   }
+};
+
+exports.signOut = (req, res) => {
+  res.clearCookie('token');
+  return res.status('200').json({
+    message: 'signed out',
+  });
+};
+
+exports.isSignedIn = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(400).json({
+        error: 'No token found!',
+      });
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+      if (err) {
+        return res.status(403).json({
+          error: 'Token not valid!',
+        });
+      }
+
+      req.user = user;
+      next();
+    });
+  } else {
+    return res.status(401).json({
+      error: 'Unauthorized! No token found.',
+    });
+  }
+};
+
+exports.hasAuthorization = (req, res, next) => {
+  console.log(req.profile._id);
+  console.log(req.user._id);
+  const authorized = req.profile && req.user && req.profile._id == req.user._id;
+  if (!authorized) {
+    return res.status(403).json({
+      error: 'You are not authorized',
+    });
+  }
+  next();
 };
