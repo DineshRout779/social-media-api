@@ -5,12 +5,13 @@ exports.getUserById = async (req, res, next, id) => {
   try {
     let user = await User.findById(id)
       .select('-profilePic')
-      .populate('following', '_id username email')
-      .populate('followers', '_id username email');
-    if (!user)
+      .populate('followers', '_id username')
+      .populate('following', '_id username');
+    if (!user) {
       return res.status(404).json({
         error: 'User not found',
       });
+    }
 
     req.profile = user;
     next();
@@ -95,51 +96,63 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
-exports.followUser = async (req, res) => {
-  if (req.body.userId !== req.params.id) {
-    try {
-      const user = await User.findById(req.params.id);
-      const currentUser = await User.findById(req.body.userId);
-
-      if (
-        !user.followers.includes(currentUser._id) &&
-        !currentUser.following.includes(user._id)
-      ) {
-        await user.updateOne({ $push: { followers: currentUser._id } });
-        await currentUser.updateOne({ $push: { following: user._id } });
-        return res.status(200).json('account has been followed!');
-      } else {
-        return res.status(403).json(`Already been followed!`);
-      }
-    } catch (err) {
-      return res.status(500).json(err);
-    }
-  } else {
-    return res.status(403).json(`you can't follow yourself!`);
+exports.addFollowing = async (req, res, next) => {
+  try {
+    await User.findByIdAndUpdate(req.profile._id, {
+      $push: { following: req.body.followId },
+    });
+    next();
+  } catch (err) {
+    return res.status(500).json(err);
   }
 };
 
-exports.unfollowUser = async (req, res) => {
-  if (req.body.userId !== req.params.id) {
-    try {
-      const user = await User.findById(req.params.id);
-      const currentUser = await User.findById(req.body.userId);
+exports.addFollower = async (req, res) => {
+  try {
+    let result = await User.findByIdAndUpdate(
+      req.body.followId,
+      { $push: { followers: req.profile._id } },
+      { new: true }
+    )
+      .populate('following', '_id username')
+      .populate('followers', '_id username');
 
-      if (
-        user.followers.includes(currentUser._id) &&
-        currentUser.following.includes(user._id)
-      ) {
-        await user.updateOne({ $pull: { followers: currentUser._id } });
-        await currentUser.updateOne({ $pull: { following: user._id } });
-        res.status(200).json(`user has been unfollowed!`);
-      } else {
-        res.status(403).json(`You don't follow this user!`);
-      }
-    } catch (err) {
-      return res.status(500).json(err);
-    }
-  } else {
-    return res.status(403).json(`you can't unfollow yourself!`);
+    result.password = undefined;
+    result.salt = undefined;
+    result.profilePic = undefined;
+    return res.status(200).json(result);
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+};
+
+exports.removeFollowing = async (req, res, next) => {
+  try {
+    await User.findByIdAndUpdate(req.profile._id, {
+      $pull: { following: req.body.unfollowId },
+    });
+    next();
+  } catch (err) {
+    return res.status(500).json(err);
+  }
+};
+
+exports.removeFollower = async (req, res) => {
+  try {
+    let result = await User.findByIdAndUpdate(
+      req.body.unfollowId,
+      { $pull: { followers: req.profile._id } },
+      { new: true }
+    )
+      .populate('following', '_id name')
+      .populate('followers', '_id name');
+
+    result.password = undefined;
+    result.salt = undefined;
+    result.profilePic = undefined;
+    return res.status(200).json(result);
+  } catch (error) {
+    return res.status(500).json(err);
   }
 };
 
