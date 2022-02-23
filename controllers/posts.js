@@ -4,7 +4,7 @@ exports.getPostById = async (req, res, next, id) => {
   try {
     let post = await Post.findById(id).populate(
       'postedBy',
-      '_id username email'
+      '_id username email profilePic'
     );
     if (!post)
       return res.status(404).json({
@@ -41,7 +41,7 @@ exports.getOwnPosts = async (req, res) => {
   try {
     const myPosts = await Post.find({
       postedBy: req.profile._id,
-    }).populate('postedBy', '_id username email');
+    }).populate('postedBy', '_id username email profilePic');
     return res.status(200).json(myPosts);
   } catch (error) {
     return res.status(500).json(error);
@@ -59,7 +59,7 @@ exports.getTimelinePosts = async (req, res) => {
   ];
   try {
     let posts = await Post.find({ postedBy: { $in: following } })
-      .populate('postedBy', '_id username')
+      .populate('postedBy', '_id username profilePic')
       .sort('-createdAt');
     return res.status(200).json(posts);
   } catch (error) {
@@ -71,7 +71,7 @@ exports.createPost = async (req, res) => {
   const newPost = new Post(req.body);
   try {
     let savedPost = await newPost.save();
-    savedPost = await savedPost.populate('postedBy', '_id username');
+    savedPost = await savedPost.populate('postedBy', '_id username profilePic');
     return res.status(200).json(savedPost);
   } catch (error) {
     return res.status(500).json(error);

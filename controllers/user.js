@@ -4,9 +4,8 @@ const bcrypt = require('bcrypt');
 exports.getUserById = async (req, res, next, id) => {
   try {
     let user = await User.findById(id)
-      .select('-profilePic')
-      .populate('followers', '_id username')
-      .populate('following', '_id username');
+      .populate('followers', '_id username profilePic')
+      .populate('following', '_id username profilePic');
     if (!user) {
       return res.status(404).json({
         error: 'User not found',
@@ -30,8 +29,8 @@ exports.getAllUsers = async (req, res) => {
     const users = req.query.username
       ? await User.find({
           username: new RegExp(req.query.username, 'i'),
-        }).select('_id username email')
-      : await User.find().select('_id username email');
+        }).select('_id username email profilePic')
+      : await User.find().select('_id username email profilePic');
     if (!users) return res.status(404).json('No user found!');
     return res.status(200).json(users);
   } catch (error) {
@@ -50,13 +49,11 @@ exports.findPeople = async (req, res) => {
   ];
   try {
     let users = await User.find({ _id: { $nin: following } }).select(
-      '_id username'
+      '_id username profilePic'
     );
     res.status(200).json(users);
   } catch (err) {
-    return res.status(400).json({
-      error: errorHandler.getErrorMessage(err),
-    });
+    return res.status(400).json(err);
   }
 };
 
@@ -98,10 +95,14 @@ exports.deleteUser = async (req, res) => {
 
 exports.addFollowing = async (req, res, next) => {
   try {
-    await User.findByIdAndUpdate(req.profile._id, {
-      $push: { following: req.body.followId },
-    });
-    next();
+    if (!req.profile.following.some((u) => u._id === req.body.followId)) {
+      await User.findByIdAndUpdate(req.profile._id, {
+        $addToSet: { following: req.body.followId },
+      });
+      next();
+    } else {
+      return res.status(500).json({ err: 'Already following..' });
+    }
   } catch (err) {
     return res.status(500).json(err);
   }
@@ -111,7 +112,7 @@ exports.addFollower = async (req, res) => {
   try {
     let result = await User.findByIdAndUpdate(
       req.body.followId,
-      { $push: { followers: req.profile._id } },
+      { $addToSet: { followers: req.profile._id } },
       { new: true }
     )
       .populate('following', '_id username')
