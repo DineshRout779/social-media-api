@@ -38,7 +38,7 @@ router.put('/:postId/:userId', isSignedIn, hasAuthorization, updatePost);
 // delete a post
 router.delete('/:postId/:userId', isSignedIn, hasAuthorization, deletePost);
 
-// // like/dislike a post
-// router.put('/:postId/like/:userId', likePost);
+// like/dislike a post
+router.put('/:postId/like/:userId', likePost);
 
 module.exports = router;
