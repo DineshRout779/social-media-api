@@ -9,6 +9,7 @@ const {
   deletePost,
   likePost,
   getOwnPosts,
+  createComment,
 } = require('../controllers/posts');
 const { getUserById } = require('../controllers/user');
 const { isSignedIn, hasAuthorization } = require('../controllers/auth');
@@ -39,6 +40,9 @@ router.put('/:postId/:userId', isSignedIn, hasAuthorization, updatePost);
 router.delete('/:postId/:userId', isSignedIn, hasAuthorization, deletePost);
 
 // like/dislike a post
-router.put('/:postId/like/:userId', likePost);
+router.put('/:postId/like/:userId', isSignedIn, likePost);
+
+// comment on a post
+router.put('/:postId/comment/:userId', isSignedIn, createComment);
 
 module.exports = router;

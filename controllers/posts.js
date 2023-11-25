@@ -2,10 +2,9 @@ const Post = require('../models/Post');
 
 exports.getPostById = async (req, res, next, id) => {
   try {
-    let post = await Post.findById(id).populate(
-      'postedBy',
-      '_id username email profilePic'
-    );
+    let post = await Post.findById(id)
+      .populate('postedBy', '_id username email profilePic')
+      .populate('comments.postedBy', '_id username email profilePic');
     if (!post)
       return res.status(404).json({
         error: 'Post not found',
@@ -28,8 +27,15 @@ exports.getPost = async (req, res) => {
 
 exports.getAllPosts = async (req, res) => {
   try {
-    const posts = await Post.find();
-    if (!posts) return res.status(400).json('no posts!');
+    const posts = await Post.find()
+      .populate('postedBy', '_id username email profilePic')
+      .populate({
+        path: 'comments.postedBy',
+        model: 'User',
+        select: '_id username email profilePic',
+      });
+
+    if (!posts || posts.length === 0) return res.status(400).json('no posts!');
 
     return res.status(200).json(posts);
   } catch (error) {
@@ -41,7 +47,13 @@ exports.getOwnPosts = async (req, res) => {
   try {
     const myPosts = await Post.find({
       postedBy: req.profile._id,
-    }).populate('postedBy', '_id username email profilePic');
+    })
+      .populate('postedBy', '_id username email profilePic')
+      .populate({
+        path: 'comments.postedBy',
+        model: 'User',
+        select: '_id username email profilePic',
+      });
     return res.status(200).json(myPosts);
   } catch (error) {
     return res.status(500).json(error);
@@ -60,7 +72,13 @@ exports.getTimelinePosts = async (req, res) => {
   try {
     let posts = await Post.find({ postedBy: { $in: following } })
       .populate('postedBy', '_id username profilePic')
+      .populate({
+        path: 'comments.postedBy',
+        model: 'User',
+        select: '_id username email profilePic',
+      })
       .sort('-createdAt');
+
     return res.status(200).json(posts);
   } catch (error) {
     return res.status(500).json({ error });
@@ -116,5 +134,44 @@ exports.likePost = async (req, res) => {
     }
   } catch (error) {
     return res.status(500).json(error);
+  }
+};
+
+exports.createComment = async (req, res) => {
+  const { postId } = req.params;
+  const { text } = req.body;
+
+  console.log(req.body);
+
+  try {
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    const comment = {
+      text,
+      postedBy: req.user._id,
+    };
+
+    post.comments.push(comment);
+    await post.save();
+
+    const updatedPost = await Post.findById(post._id)
+      .populate('postedBy', '_id username profilePic')
+      .populate({
+        path: 'comments.postedBy',
+        model: 'User',
+        select: '_id username email profilePic',
+      });
+
+    res.status(201).json({
+      message: 'Comment added successfully',
+      comments: updatedPost.comments,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 };
