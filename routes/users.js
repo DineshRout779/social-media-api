@@ -10,8 +10,11 @@ const {
   addFollowing,
   removeFollower,
   removeFollowing,
+  getRestaurants,
+  getRestaurantById,
 } = require('../controllers/user');
 const { isSignedIn, hasAuthorization } = require('../controllers/auth');
+const fetch = require('cross-fetch');
 
 // route params
 router.param('userId', getUserById);
@@ -36,5 +39,10 @@ router.put('/follow/:userId', isSignedIn, addFollowing, addFollower);
 
 // unfollow user
 router.put('/unfollow/:userId', isSignedIn, removeFollowing, removeFollower);
+
+// swiggy's API
+router.post('/swiggy/restaurants', getRestaurants);
+
+router.get('/swiggy/restaurants/:id', getRestaurantById);
 
 module.exports = router;
