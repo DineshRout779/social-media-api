@@ -213,3 +213,76 @@ exports.spotify = async (req, res) => {
     isPlaying: song.is_playing,
   });
 };
+
+// linkedin API
+exports.getLinkedinAccessToken = async (req, res) => {
+  const clientId = process.env.LINKEDIN_AUTH_CLIENT_ID;
+  const clientSecret = process.env.LINKEDIN_AUTH_CLIENT_SECRET;
+  const redirectUri = process.env.LINKEDIN_AUTH_REDIRECT_URL;
+
+  const { code } = req.body;
+
+  if (!code) {
+    return res.status(403).json({
+      message: 'No authorization code provided',
+      error: 'No authorization code provided',
+    });
+  }
+
+  const requestBody = new URLSearchParams({
+    grant_type: 'authorization_code',
+    code,
+    client_id: clientId,
+    client_secret: clientSecret,
+    redirect_uri: redirectUri,
+  });
+
+  try {
+    const response = await fetch(
+      'https://www.linkedin.com/oauth/v2/accessToken',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Access-Control-Allow-Origin': '*',
+        },
+        body: requestBody,
+      }
+    );
+
+    const data = await response.json();
+    return res.status(200).json({
+      data,
+    });
+  } catch (error) {
+    console.error('Error exchanging code for token:', error.message);
+    return res.status(500).json({
+      message: error.message,
+      error,
+    });
+  }
+};
+
+exports.getLinkedinUser = async (req, res) => {
+  try {
+    const { access_token } = req.body;
+    const response = await fetch('https://api.linkedin.com/v2/userinfo', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
+
+    const data = await response.json();
+
+    return res.status(200).json({
+      user: data,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      message: 'Server error',
+      error,
+    });
+  }
+};
